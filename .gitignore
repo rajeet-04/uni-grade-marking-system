@@ -58,3 +58,8 @@ backend/prisma/migrations/**/migration.sql
 # Temp files
 tmp/
 temp/
+
+# Lock files and build info
+package-lock.json
+tsconfig.tsbuildinfo
+next-env.d.ts
