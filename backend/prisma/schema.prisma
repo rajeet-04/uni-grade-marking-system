@@ -100,7 +100,7 @@ model Department {
 model Course {
   id             String  @id @default(uuid())
   name           String
-  code           String
+  code           String  @unique
   totalSemesters Int     @map("total_semesters")
   departmentId   String? @map("department_id")
 
@@ -213,7 +213,7 @@ model Mark {
 
 model Grade {
   id         String  @id @default(uuid())
-  name       String  // 'A+', 'A', etc.
+  name       String  @unique // 'A+', 'A', etc.
   minMark    Decimal @map("min_mark")
   maxMark    Decimal @map("max_mark")
   gradePoint Decimal @map("grade_point")
