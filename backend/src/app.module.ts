@@ -11,6 +11,9 @@ import { SubjectsModule } from './subjects/subjects.module';
 import { ExamsModule } from './exams/exams.module';
 import { MarksModule } from './marks/marks.module';
 import { ResultsModule } from './results/results.module';
+import { EnrolmentsModule } from './enrolments/enrolments.module';
+import { AcademicYearsModule } from './academic-years/academic-years.module';
+import { DepartmentsModule } from './departments/departments.module';
 
 @Module({
   imports: [
@@ -33,6 +36,9 @@ import { ResultsModule } from './results/results.module';
     ExamsModule,
     MarksModule,
     ResultsModule,
+    EnrolmentsModule,
+    AcademicYearsModule,
+    DepartmentsModule,
   ],
 })
 export class AppModule {}

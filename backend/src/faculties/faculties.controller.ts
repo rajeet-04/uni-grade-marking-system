@@ -19,4 +19,9 @@ export class FacultiesController {
   async findOne(@Param('id') id: string) {
     return this.facultiesService.findOne(id);
   }
+
+  @Get(':id/students')
+  async getStudents(@Param('id') id: string) {
+    return this.facultiesService.getStudentsByFaculty(id);
+  }
 }
