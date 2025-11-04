@@ -1,0 +1,279 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  role         Role
+  name         String?
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  student      Student?
+  faculty      Faculty?
+  admin        Admin?
+  auditLogs    AuditLog[]
+  notifications Notification[]
+  examsCreated Exam[]
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  FACULTY
+  STUDENT
+}
+
+model Student {
+  id             String      @id @default(uuid())
+  userId         String      @unique @map("user_id")
+  rollNumber     String      @unique @map("roll_number")
+  enrollmentYear Int         @map("enrollment_year")
+  departmentId   String?     @map("department_id")
+  courseId       String?     @map("course_id")
+  profilePic     String?     @map("profile_pic")
+  status         String      @default("active")
+  dob            DateTime?
+  phone          String?
+
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department    Department?  @relation(fields: [departmentId], references: [id])
+  course        Course?      @relation(fields: [courseId], references: [id])
+  enrolments    Enrolment[]
+  marks         Mark[]
+  results       Result[]
+
+  @@map("students")
+}
+
+model Faculty {
+  id           String   @id @default(uuid())
+  userId       String   @unique @map("user_id")
+  employeeId   String   @unique @map("employee_id")
+  departmentId String?  @map("department_id")
+  designation  String?
+  phone        String?
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department    Department?    @relation(fields: [departmentId], references: [id])
+  subjects      Subject[]
+  examSessions  ExamSession[]
+  marksGraded   Mark[]
+
+  @@map("faculties")
+}
+
+model Admin {
+  id     String  @id @default(uuid())
+  userId String  @unique @map("user_id")
+  notes  String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("admins")
+}
+
+model Department {
+  id   String @id @default(uuid())
+  name String
+  code String @unique
+
+  students Student[]
+  faculties Faculty[]
+  courses  Course[]
+
+  @@map("departments")
+}
+
+model Course {
+  id             String  @id @default(uuid())
+  name           String
+  code           String  @unique
+  totalSemesters Int     @map("total_semesters")
+  departmentId   String? @map("department_id")
+
+  department  Department?  @relation(fields: [departmentId], references: [id])
+  students    Student[]
+  subjects    Subject[]
+  enrolments  Enrolment[]
+
+  @@map("courses")
+}
+
+model Subject {
+  id               String      @id @default(uuid())
+  code             String
+  name             String
+  courseId         String      @map("course_id")
+  semesterNumber   Int         @map("semester_number")
+  credits          Int
+  subjectType      String      @map("subject_type") // 'theory' | 'practical'
+  assignedFacultyId String?    @map("assigned_faculty_id")
+
+  course         Course         @relation(fields: [courseId], references: [id])
+  assignedFaculty Faculty?      @relation(fields: [assignedFacultyId], references: [id])
+  examSessions   ExamSession[]
+
+  @@map("subjects")
+}
+
+model AcademicYear {
+  id        String    @id @default(uuid())
+  label     String    // '2024-25'
+  startDate DateTime  @map("start_date")
+  endDate   DateTime  @map("end_date")
+  current   Boolean   @default(false)
+
+  exams      Exam[]
+  enrolments Enrolment[]
+  results    Result[]
+
+  @@map("academic_years")
+}
+
+model Exam {
+  id             String   @id @default(uuid())
+  examType       String   @map("exam_type") // 'midterm' | 'final' | 'viva' | 'practical'
+  name           String
+  academicYearId String   @map("academic_year_id")
+  startDate      DateTime @map("start_date")
+  endDate        DateTime @map("end_date")
+  createdBy      String   @map("created_by")
+
+  academicYear AcademicYear  @relation(fields: [academicYearId], references: [id])
+  creator      User          @relation(fields: [createdBy], references: [id])
+  sessions     ExamSession[]
+
+  @@map("exams")
+}
+
+model ExamSession {
+  id         String    @id @default(uuid())
+  examId     String    @map("exam_id")
+  subjectId  String    @map("subject_id")
+  facultyId  String    @map("faculty_id")
+  date       DateTime
+  startTime  String    @map("start_time")
+  endTime    String    @map("end_time")
+  venue      String?
+
+  exam     Exam      @relation(fields: [examId], references: [id])
+  subject  Subject   @relation(fields: [subjectId], references: [id])
+  faculty  Faculty   @relation(fields: [facultyId], references: [id])
+  marks    Mark[]
+
+  @@map("exam_sessions")
+}
+
+model Enrolment {
+  id             String  @id @default(uuid())
+  studentId      String  @map("student_id")
+  courseId       String  @map("course_id")
+  semesterNumber Int     @map("semester_number")
+  academicYearId String  @map("academic_year_id")
+  isActive       Boolean @default(true) @map("is_active")
+
+  student      Student      @relation(fields: [studentId], references: [id])
+  course       Course       @relation(fields: [courseId], references: [id])
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+
+  @@map("enrolments")
+}
+
+model Mark {
+  id               String   @id @default(uuid())
+  studentId        String   @map("student_id")
+  examSessionId    String   @map("exam_session_id")
+  marksObtained    Decimal  @map("marks_obtained")
+  maxMarks         Decimal  @map("max_marks")
+  internalExternal String?  @map("internal_external")
+  gradedBy         String   @map("graded_by")
+  remark           String?
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  student     Student     @relation(fields: [studentId], references: [id])
+  examSession ExamSession @relation(fields: [examSessionId], references: [id])
+  gradedByFaculty Faculty @relation(fields: [gradedBy], references: [id])
+
+  @@map("marks")
+}
+
+model Grade {
+  id         String  @id @default(uuid())
+  name       String  @unique // 'A+', 'A', etc.
+  minMark    Decimal @map("min_mark")
+  maxMark    Decimal @map("max_mark")
+  gradePoint Decimal @map("grade_point")
+
+  @@map("grades")
+}
+
+model Result {
+  id             String    @id @default(uuid())
+  studentId      String    @map("student_id")
+  academicYearId String    @map("academic_year_id")
+  semesterNumber Int       @map("semester_number")
+  sgpa           Decimal?
+  cgpa           Decimal?
+  status         String    // 'pass' | 'fail'
+  pdfPath        String?   @map("pdf_path")
+  publishedAt    DateTime? @map("published_at")
+
+  student      Student      @relation(fields: [studentId], references: [id])
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+
+  @@map("results")
+}
+
+model Notification {
+  id     String    @id @default(uuid())
+  userId String?   @map("user_id")
+  title  String
+  body   String
+  type   String    // 'email' | 'inapp' | 'sms'
+  sentAt DateTime  @default(now()) @map("sent_at")
+  readAt DateTime? @map("read_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+model VerificationToken {
+  id           String   @id @default(uuid())
+  token        String   @unique
+  resourceType String   @map("resource_type") // 'result'
+  resourceId   String   @map("resource_id")
+  signedHmac   String   @map("signed_hmac")
+  createdAt    DateTime @default(now()) @map("created_at")
+  expiresAt    DateTime @map("expires_at")
+
+  @@map("verification_tokens")
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  userId       String?  @map("user_id")
+  action       String
+  resourceType String   @map("resource_type")
+  resourceId   String?  @map("resource_id")
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
